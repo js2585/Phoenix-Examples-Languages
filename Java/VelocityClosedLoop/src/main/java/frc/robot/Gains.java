@@ -4,7 +4,7 @@
 package frc.robot;
 
 public class Gains {
-	public final double kP;
+	public double kP;
 	public final double kI;
 	public final double kD;
 	public final double kF;
@@ -19,4 +19,5 @@ public class Gains {
 		kIzone = _kIzone;
 		kPeakOutput = _kPeakOutput;
 	}
+
 }

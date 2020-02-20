@@ -53,32 +53,38 @@ import edu.wpi.first.wpilibj.Joystick;
 
 import com.ctre.phoenix.motorcontrol.can.*;
 import com.ctre.phoenix.motorcontrol.*;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Robot extends TimedRobot {
     /* Hardware */
-	TalonSRX _talon = new TalonSRX(1);
+	TalonSRX _talon = new TalonSRX(10);
     Joystick _joy = new Joystick(0);
+    Joystick _joy2 = new Joystick(1);
+	VictorSPX follower = new VictorSPX(11);
     
     /* String for output */
     StringBuilder _sb = new StringBuilder();
-    
-    /* Loop tracker for prints */
+	double kIJoystick;
+
+
+	/* Loop tracker for prints */
 	int _loops = 0;
 
 	public void robotInit() {
         /* Factory Default all hardware to prevent unexpected behaviour */
         _talon.configFactoryDefault();
+		kIJoystick = ((_joy2.getZ() + 1.0) / 2.0) * 0.010;
 
 		/* Config sensor used for Primary PID [Velocity] */
         _talon.configSelectedFeedbackSensor(FeedbackDevice.CTRE_MagEncoder_Relative,
                                             Constants.kPIDLoopIdx, 
                                             Constants.kTimeoutMs);
-
+		follower.follow(_talon);
         /**
 		 * Phase sensor accordingly. 
          * Positive Sensor Reading should match Green (blinking) Leds on Talon
          */
-		_talon.setSensorPhase(true);
+		_talon.setSensorPhase(false); // todo figure out
 
 		/* Config the peak and nominal outputs */
 		_talon.configNominalOutputForward(0, Constants.kTimeoutMs);
@@ -89,8 +95,9 @@ public class Robot extends TimedRobot {
 		/* Config the Velocity closed loop gains in slot0 */
 		_talon.config_kF(Constants.kPIDLoopIdx, Constants.kGains_Velocit.kF, Constants.kTimeoutMs);
 		_talon.config_kP(Constants.kPIDLoopIdx, Constants.kGains_Velocit.kP, Constants.kTimeoutMs);
-		_talon.config_kI(Constants.kPIDLoopIdx, Constants.kGains_Velocit.kI, Constants.kTimeoutMs);
+//		_talon.config_kI(Constants.kPIDLoopIdx, Constants.kGains_Velocit.kI, Constants.kTimeoutMs);
 		_talon.config_kD(Constants.kPIDLoopIdx, Constants.kGains_Velocit.kD, Constants.kTimeoutMs);
+		_talon.config_kI(Constants.kPIDLoopIdx, kIJoystick);
 	}
 
 	/**
@@ -98,7 +105,8 @@ public class Robot extends TimedRobot {
 	 */
 	public void teleopPeriodic() {
 		/* Get gamepad axis */
-		double leftYstick = -1 * _joy.getY();
+		double leftYstick = (_joy.getZ() + 1.0) / 2.0;
+
 
 		/* Get Talon/Victor's current output percentage */
 		double motorOutput = _talon.getMotorOutputPercent();
@@ -112,12 +120,20 @@ public class Robot extends TimedRobot {
 		_sb.append("\tspd:");
 		_sb.append(_talon.getSelectedSensorVelocity(Constants.kPIDLoopIdx));
 		_sb.append("u"); 	// Native units
+//		SmartDashboard.putNumber("Motor velocity", _talon.getActiveTrajectoryVelocity() * 600 / 4096);
+		SmartDashboard.putNumber("Closed Loop Error", _talon.getClosedLoopError());
+		SmartDashboard.putNumber("Closed Loop Error (RPM)", _talon.getClosedLoopError() * 600f / 4096);
+		SmartDashboard.putNumber("Encoder Velocity", _talon.getSelectedSensorVelocity());
+		SmartDashboard.putNumber("Encoder Velocity (RPM)", _talon.getSelectedSensorVelocity() * 600f / 4096);
+		SmartDashboard.putNumber("Joystick Input", leftYstick);
+		SmartDashboard.putNumber("Set P", Constants.kGains_Velocit.kP);
+		SmartDashboard.putNumber("Joystick I", kIJoystick);
 
         /** 
 		 * When button 1 is held, start and run Velocity Closed loop.
 		 * Velocity Closed Loop is controlled by joystick position x500 RPM, [-500, 500] RPM
 		 */
-		if (_joy.getRawButton(1)) {
+		if (_joy.getRawButton(5)) {
 			/* Velocity Closed Loop */
 
 			/**
@@ -125,7 +141,9 @@ public class Robot extends TimedRobot {
 			 * 4096 Units/Rev * 500 RPM / 600 100ms/min in either direction:
 			 * velocity setpoint is in units/100ms
 			 */
-			double targetVelocity_UnitsPer100ms = leftYstick * 500.0 * 4096 / 600;
+			double targetVelocity_UnitsPer100ms = leftYstick * 7400.0 * 4096 / 600;
+			SmartDashboard.putNumber("Target Velocity", targetVelocity_UnitsPer100ms);
+			SmartDashboard.putNumber("Target Velocity (RPM)", leftYstick * 7400);
 			/* 500 RPM in either direction */
 			_talon.set(ControlMode.Velocity, targetVelocity_UnitsPer100ms);
 
