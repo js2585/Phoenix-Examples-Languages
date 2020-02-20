@@ -36,5 +36,6 @@ public class Constants {
 	 * Gains used in Positon Closed Loop, to be adjusted accordingly
      * Gains(kp, ki, kd, kf, izone, peak output);
      */
-    static final Gains kGains = new Gains(0.15, 0.0, 0, 0.0, 0, 0.3);
+    static final Gains kGains = new Gains(0.15, 0.00025, 0, 0.0, (int) Math.round(5 * Robot.HOOD_PULSES_PER_DEGREE), 0.3);
+    static final Gains kGains_Hood = new Gains(0.15, 0.00000, 0, 0.0, (int) Math.round(0 * Robot.HOOD_PULSES_PER_DEGREE), 0.3);
 }
